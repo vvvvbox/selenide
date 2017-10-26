@@ -15,6 +15,7 @@ dependencies {
     exclude group: 'org.apache.httpcomponents', module: 'httpcore'
     exclude group: 'net.sourceforge.htmlunit', module: 'htmlunit'
   }
+  implementation('javax.inject:javax.inject:1')
   implementation('io.github.bonigarcia:webdrivermanager:2.2.1')
   implementation('org.apache.httpcomponents:httpcore:4.4.9')
   implementation('com.google.code.gson:gson:2.8.2')
