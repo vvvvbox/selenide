@@ -4,42 +4,23 @@ import com.codeborne.selenide.ex.DialogTextMismatch;
 import com.codeborne.selenide.ex.JavaScriptErrorsFound;
 import com.codeborne.selenide.impl.BySelectorCollection;
 import com.codeborne.selenide.impl.ElementFinder;
-import com.codeborne.selenide.impl.Navigator;
-import com.codeborne.selenide.impl.SelenideFieldDecorator;
 import com.codeborne.selenide.impl.WebElementsCollectionWrapper;
-import org.openqa.selenium.Alert;
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.WebElement;
+import com.codeborne.selenide.inject.Module;
+import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.logging.LogEntry;
-import org.openqa.selenium.support.PageFactory;
 import org.openqa.selenium.support.ui.FluentWait;
 
-import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import static com.codeborne.selenide.Configuration.captureJavascriptErrors;
-import static com.codeborne.selenide.Configuration.dismissModalDialogs;
-import static com.codeborne.selenide.Configuration.timeout;
-import static com.codeborne.selenide.WebDriverRunner.closeWebDriver;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
-import static com.codeborne.selenide.WebDriverRunner.hasWebDriverStarted;
-import static com.codeborne.selenide.WebDriverRunner.supportsJavascript;
-import static com.codeborne.selenide.WebDriverRunner.supportsModalDialogs;
 import static com.codeborne.selenide.WebDriverRunner.url;
 import static com.codeborne.selenide.impl.WebElementWrapper.wrap;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * The main starting point of Selenide.
@@ -48,10 +29,13 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
  * {@link #$(String)} for searching web elements.
  */
 public class Selenide {
-  private static final Logger log = Logger.getLogger(Selenide.class.getName());
+  private static final ThreadLocal<SelenideDriver> defaultDrivers = ThreadLocal.withInitial(() ->
+      new Module().instance(SelenideDriver.class)
+  );
 
-  public static Navigator navigator = new Navigator();
-
+  private static SelenideDriver defaultDriver() {
+    return defaultDrivers.get();
+  }
 
   /**
    * The main starting point in your tests.
@@ -66,14 +50,14 @@ public class Selenide {
    *   In this case, it's prepended by baseUrl
    */
   public static void open(String relativeOrAbsoluteUrl) {
-    open(relativeOrAbsoluteUrl, "", "", "");
+    defaultDriver().open(relativeOrAbsoluteUrl);
   }
 
   /**
    * @see Selenide#open(String)
    */
   public static void open(URL absoluteUrl) {
-    open(absoluteUrl, "", "", "");
+    defaultDriver().open(absoluteUrl);
   }
 
   /**
@@ -92,16 +76,14 @@ public class Selenide {
    *   In this case, it's prepended by baseUrl
    */
   public static void open(String relativeOrAbsoluteUrl, String domain, String login, String password) {
-    navigator.open(relativeOrAbsoluteUrl, domain, login, password);
-    mockModalDialogs();
+    defaultDriver().open(relativeOrAbsoluteUrl, domain, login, password);
   }
 
   /**
    * @see Selenide#open(URL, String, String, String)
    */
   public static void open(URL absoluteUrl, String domain, String login, String password) {
-    navigator.open(absoluteUrl, domain, login, password);
-    mockModalDialogs();
+    defaultDriver().open(absoluteUrl, domain, login, password);
   }
 
   /**
@@ -111,29 +93,7 @@ public class Selenide {
    * @param hash value for window.location.hash - Accept either "#hash" or "hash".
    */
   public static void updateHash(String hash) {
-    String localHash = (hash.charAt(0) == '#') ? hash.substring(1) : hash;
-    executeJavaScript("window.location.hash='" + localHash + "'");
-  }
-
-  private static boolean doDismissModalDialogs() {
-    return !supportsModalDialogs() || dismissModalDialogs;
-  }
-
-  private static void mockModalDialogs() {
-    if (doDismissModalDialogs()) {
-      String jsCode =
-          "  window._selenide_modalDialogReturnValue = true;\n" +
-          "  window.alert = function(message) {};\n" +
-          "  window.confirm = function(message) {\n" +
-          "    return window._selenide_modalDialogReturnValue;\n" +
-          "  };";
-      try {
-        executeJavaScript(jsCode);
-      }
-      catch (UnsupportedOperationException cannotExecuteJsAgainstPlainTextPage) {
-        log.warning(cannotExecuteJsAgainstPlainTextPage.toString());
-      }
-    }
+    defaultDriver().updateHash(hash);
   }
 
   /**
@@ -142,7 +102,7 @@ public class Selenide {
    */
   public static <PageObjectClass> PageObjectClass open(String relativeOrAbsoluteUrl,
                                                        Class<PageObjectClass> pageObjectClassClass) {
-    return open(relativeOrAbsoluteUrl, "", "", "", pageObjectClassClass);
+    return defaultDriver().open(relativeOrAbsoluteUrl, pageObjectClassClass);
   }
 
   /**
@@ -151,7 +111,7 @@ public class Selenide {
    */
   public static <PageObjectClass> PageObjectClass open(URL absoluteUrl,
                                                        Class<PageObjectClass> pageObjectClassClass) {
-    return open(absoluteUrl, "", "", "", pageObjectClassClass);
+    return defaultDriver().open(absoluteUrl, pageObjectClassClass);
   }
 
   /**
@@ -161,8 +121,7 @@ public class Selenide {
   public static <PageObjectClass> PageObjectClass open(String relativeOrAbsoluteUrl,
                                                        String domain, String login, String password,
                                                        Class<PageObjectClass> pageObjectClassClass) {
-    open(relativeOrAbsoluteUrl, domain, login, password);
-    return page(pageObjectClassClass);
+    return defaultDriver().open(relativeOrAbsoluteUrl, domain, login, password, pageObjectClassClass);
   }
 
   /**
@@ -171,44 +130,42 @@ public class Selenide {
    */
   public static <PageObjectClass> PageObjectClass open(URL absoluteUrl, String domain, String login, String password,
                                                        Class<PageObjectClass> pageObjectClassClass) {
-    open(absoluteUrl, domain, login, password);
-    return page(pageObjectClassClass);
+    return defaultDriver().open(absoluteUrl, domain, login, password, pageObjectClassClass);
   }
 
   /**
    * Close the browser if it's open
    */
   public static void close() {
-    closeWebDriver();
+    defaultDriver().close();
   }
 
   /**
    * Reload current page
    */
   public static void refresh() {
-    navigator.open(url());
+    defaultDriver().open(url());
   }
 
   /**
    * Navigate browser back to previous page
    */
   public static void back() {
-    navigator.back();
+    defaultDriver().back();
   }
 
   /**
    * Navigate browser forward to next page
    */
   public static void forward() {
-    navigator.forward();
+    defaultDriver().forward();
   }
 
   /**
-   *
    * @return title of the page
    */
   public static String title() {
-    return getWebDriver().getTitle();
+    return defaultDriver().title();
   }
 
   /**
@@ -230,8 +187,12 @@ public class Selenide {
    * @return The name of resulting file
    */
   public static String screenshot(String fileName) {
-    return Screenshots.takeScreenShot(fileName);
+    return defaultDriver().screenshot(fileName);
   }
+
+  // ********************************************
+  // TODO Migrate methods below to SelenideDriver
+  // ********************************************
 
   /**
    * Wrap standard Selenium WebElement into SelenideElement
@@ -638,26 +599,17 @@ public class Selenide {
   }
 
   /**
-   * Create a Page Object instance.
-   * @see PageFactory#initElements(WebDriver, Class)
+   * Create a Page Object instance
    */
   public static <PageObjectClass> PageObjectClass page(Class<PageObjectClass> pageObjectClass) {
-    try {
-      Constructor<PageObjectClass> constructor = pageObjectClass.getDeclaredConstructor();
-      constructor.setAccessible(true);
-      return page(constructor.newInstance());
-    } catch (Exception e) {
-      throw new RuntimeException("Failed to create new instance of " + pageObjectClass, e);
-    }
+    return defaultDriver().page(pageObjectClass);
   }
 
   /**
-   * Create a Page Object instance.
-   * @see PageFactory#initElements(WebDriver, Class)
+   * Create a Page Object instance
    */
   public static <PageObjectClass, T extends PageObjectClass> PageObjectClass page(T pageObject) {
-    SelenidePageFactory.initElements(new SelenideFieldDecorator(getWebDriver()), pageObject);
-    return pageObject;
+    return defaultDriver().page(pageObject);
   }
 
   /**
@@ -671,9 +623,7 @@ public class Selenide {
    * @return instance of org.openqa.selenium.support.ui.FluentWait
    */
   public static FluentWait<WebDriver> Wait() {
-    return new FluentWait<>(getWebDriver())
-        .withTimeout(timeout, MILLISECONDS)
-        .pollingEvery(Configuration.pollingInterval, MILLISECONDS);
+    return defaultDriver().Wait();
   }
 
   /**
@@ -690,7 +640,7 @@ public class Selenide {
    * </pre>
    */
   public static Actions actions() {
-    return new Actions(getWebDriver());
+    return defaultDriver().actions();
   }
 
   /**
@@ -705,55 +655,7 @@ public class Selenide {
    * @return list of error messages. Returns empty list if webdriver is not started properly.
    */
   public static List<String> getJavascriptErrors() {
-    if (!captureJavascriptErrors) {
-      return emptyList();
-    }
-    else if (!hasWebDriverStarted()) {
-      return emptyList();
-    }
-    else if (!supportsJavascript()) {
-      return emptyList();
-    }
-    try {
-      Object errors = executeJavaScript("return window._selenide_jsErrors");
-      if (errors == null) {
-        return emptyList();
-      }
-      else if (errors instanceof List) {
-        return errorsFromList((List<Object>) errors);
-      }
-      else if (errors instanceof Map) {
-        return errorsFromMap((Map<Object, Object>) errors);
-      }
-      else {
-        return asList(errors.toString());
-      }
-    } catch (WebDriverException | UnsupportedOperationException cannotExecuteJs) {
-      log.warning(cannotExecuteJs.toString());
-      return emptyList();
-    }
-  }
-
-  private static List<String> errorsFromList(List<Object> errors) {
-    if (errors.isEmpty()) {
-      return emptyList();
-    }
-    List<String> result = new ArrayList<>(errors.size());
-    for (Object error : errors) {
-      result.add(error.toString());
-    }
-    return result;
-  }
-
-  private static List<String> errorsFromMap(Map<Object, Object> errors) {
-    if (errors.isEmpty()) {
-      return emptyList();
-    }
-    List<String> result = new ArrayList<>(errors.size());
-    for (Map.Entry error : errors.entrySet()) {
-      result.add(error.getKey() + ": " + error.getValue());
-    }
-    return result;
+    return defaultDriver().getJavascriptErrors();
   }
 
   /**
@@ -761,10 +663,7 @@ public class Selenide {
    * @throws JavaScriptErrorsFound
    */
   public static void assertNoJavascriptErrors() throws JavaScriptErrorsFound {
-    List<String> jsErrors = getJavascriptErrors();
-    if (jsErrors != null && !jsErrors.isEmpty()) {
-      throw new JavaScriptErrorsFound(jsErrors);
-    }
+    defaultDriver().assertNoJavascriptErrors();
   }
 
   /**
@@ -772,18 +671,14 @@ public class Selenide {
    * @param factor e.g. 1.1 or 2.0 or 0.5
    */
   public static void zoom(double factor) {
-    executeJavaScript(
-        "document.body.style.transform = 'scale(' + arguments[0] + ')';" +
-        "document.body.style.transformOrigin = '0 0';",
-        factor
-    );
+    defaultDriver().zoom(factor);
   }
 
   /**
    * Same as com.codeborne.selenide.Selenide#getWebDriverLogs(java.lang.String, java.util.logging.Level)
    */
   public static List<String> getWebDriverLogs(String logType) {
-    return getWebDriverLogs(logType, Level.ALL);
+    return defaultDriver().getWebDriverLogs(logType);
   }
 
   /**
@@ -816,7 +711,7 @@ public class Selenide {
    * @see java.util.logging.Level
    */
   public static List<String> getWebDriverLogs(String logType, Level logLevel) {
-    return listToString(getLogEntries(logType, logLevel));
+    return defaultDriver().getWebDriverLogs(logType, logLevel);
   }
 
   /**
@@ -826,7 +721,7 @@ public class Selenide {
    *
    */
   public static void clearBrowserCookies() {
-    getWebDriver().manage().deleteAllCookies();
+    defaultDriver().clearBrowserCookies();
   }
 
   /**
@@ -835,7 +730,7 @@ public class Selenide {
    *  In case if you need to be sure that browser's localStorage is empty
    */
   public static void clearBrowserLocalStorage() {
-    executeJavaScript("localStorage.clear();");
+    defaultDriver().clearBrowserLocalStorage();
   }
 
   /**
@@ -844,16 +739,7 @@ public class Selenide {
    * @return browser user agent
    */
   public static String getUserAgent() {
-    return executeJavaScript("return navigator.userAgent;");
-  }
-
-  private static List<LogEntry> getLogEntries(String logType, Level logLevel) {
-    try {
-      return getWebDriver().manage().logs().get(logType).filter(logLevel);
-    }
-    catch (UnsupportedOperationException ignore) {
-      return emptyList();
-    }
+    return defaultDriver().getUserAgent();
   }
 
   /**
@@ -862,17 +748,6 @@ public class Selenide {
    * Useful if you need to scroll down by x pixels unknown number of times.
    */
   public static boolean atBottom() {
-    return Selenide.executeJavaScript("return window.pageYOffset + window.innerHeight >= document.body.scrollHeight");
-  }
-
-  private static <T> List<String> listToString(List<T> objects) {
-    if (objects == null || objects.isEmpty()) {
-      return emptyList();
-    }
-    List<String> result = new ArrayList<>(objects.size());
-    for (T object : objects) {
-      result.add(object.toString());
-    }
-    return result;
+    return executeJavaScript("return window.pageYOffset + window.innerHeight >= document.body.scrollHeight");
   }
 }
