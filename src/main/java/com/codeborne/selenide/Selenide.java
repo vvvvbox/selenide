@@ -144,7 +144,7 @@ public class Selenide {
    * Reload current page
    */
   public static void refresh() {
-    defaultDriver().open(url());
+    defaultDriver().refresh();
   }
 
   /**
@@ -202,7 +202,7 @@ public class Selenide {
    * @return given WebElement wrapped into SelenideElement
    */
   public static SelenideElement $(WebElement webElement) {
-    return wrap(webElement);
+    return defaultDriver().$(webElement);
   }
 
   /**
@@ -212,7 +212,7 @@ public class Selenide {
    * @return SelenideElement
    */
   public static SelenideElement $(String cssSelector) {
-    return getElement(By.cssSelector(cssSelector));
+    return defaultDriver().$(cssSelector);
   }
 
   /**
@@ -222,7 +222,7 @@ public class Selenide {
    * @return SelenideElement which locates elements via XPath
    */
   public static SelenideElement $x(String xpathExpression) {
-    return getElement(By.xpath(xpathExpression));
+    return defaultDriver().$x(xpathExpression);
   }
 
   /**
@@ -232,14 +232,14 @@ public class Selenide {
    * @return SelenideElement
    */
   public static SelenideElement $(By seleniumSelector) {
-    return getElement(seleniumSelector);
+    return defaultDriver().$(seleniumSelector);
   }
 
   /**
    * @see #getElement(By, int)
    */
   public static SelenideElement $(By seleniumSelector, int index) {
-    return getElement(seleniumSelector, index);
+    return defaultDriver().$(seleniumSelector, index);
   }
 
   /**
@@ -255,7 +255,7 @@ public class Selenide {
    */
   @Deprecated
   public static SelenideElement $(WebElement parent, String cssSelector) {
-    return ElementFinder.wrap($(parent), By.cssSelector(cssSelector), 0);
+    return defaultDriver().$(parent).$(cssSelector);
   }
 
   /**
@@ -266,7 +266,7 @@ public class Selenide {
    * @return SelenideElement
    */
   public static SelenideElement $(String cssSelector, int index) {
-    return ElementFinder.wrap(null, By.cssSelector(cssSelector), index);
+    return defaultDriver().$(cssSelector, index);
   }
 
   /**
@@ -283,7 +283,7 @@ public class Selenide {
    */
   @Deprecated
   public static SelenideElement $(WebElement parent, String cssSelector, int index) {
-    return ElementFinder.wrap($(parent), By.cssSelector(cssSelector), index);
+    return defaultDriver().$(parent).$(cssSelector, index);
   }
 
   /**
@@ -299,7 +299,7 @@ public class Selenide {
    */
   @Deprecated
   public static SelenideElement $(WebElement parent, By seleniumSelector) {
-    return ElementFinder.wrap($(parent), seleniumSelector, 0);
+    return defaultDriver().$(parent).$(seleniumSelector);
   }
 
   /**
@@ -316,7 +316,7 @@ public class Selenide {
    */
   @Deprecated
   public static SelenideElement $(WebElement parent, By seleniumSelector, int index) {
-    return ElementFinder.wrap($(parent), seleniumSelector, index);
+    return defaultDriver().$(parent).$(seleniumSelector, index);
   }
 
   /**
@@ -325,7 +325,7 @@ public class Selenide {
    * @return
    */
   public static ElementsCollection $$(Collection<? extends WebElement> elements) {
-    return new ElementsCollection(new WebElementsCollectionWrapper(elements));
+    return defaultDriver().$$(elements);
   }
 
   /**
@@ -339,7 +339,7 @@ public class Selenide {
    * @return empty list if element was no found
    */
   public static ElementsCollection $$(String cssSelector) {
-    return new ElementsCollection(new BySelectorCollection(By.cssSelector(cssSelector)));
+    return defaultDriver().$$(cssSelector);
   }
 
   /**
@@ -352,7 +352,7 @@ public class Selenide {
    * @return ElementsCollection which locates elements via XPath
    */
   public static ElementsCollection $$x(String xpathExpression) {
-    return new ElementsCollection(new BySelectorCollection(By.xpath(xpathExpression)));
+    return defaultDriver().$$x(xpathExpression);
   }
 
   /**
@@ -366,7 +366,7 @@ public class Selenide {
    * @return empty list if element was no found
    */
   public static ElementsCollection $$(By seleniumSelector) {
-    return new ElementsCollection(new BySelectorCollection(seleniumSelector));
+    return defaultDriver().$$(seleniumSelector);
   }
 
   /**
@@ -386,7 +386,7 @@ public class Selenide {
    */
   @Deprecated
   public static ElementsCollection $$(WebElement parent, String cssSelector) {
-    return new ElementsCollection(new BySelectorCollection(parent, By.cssSelector(cssSelector)));
+    return defaultDriver().$(parent).$$(cssSelector);
   }
 
   /**
@@ -400,7 +400,7 @@ public class Selenide {
    */
   @Deprecated
   public static ElementsCollection $$(WebElement parent, By seleniumSelector) {
-    return new ElementsCollection(new BySelectorCollection(parent, seleniumSelector));
+    return defaultDriver().$(parent).$$(seleniumSelector);
   }
 
   /**
@@ -410,7 +410,7 @@ public class Selenide {
    * @return SelenideElement
    */
   public static SelenideElement getElement(By criteria) {
-    return ElementFinder.wrap(null, criteria, 0);
+    return defaultDriver().getElement(criteria);
   }
 
   /**
@@ -421,7 +421,7 @@ public class Selenide {
    * @return SelenideElement
    */
   public static SelenideElement getElement(By criteria, int index) {
-    return ElementFinder.wrap(null, criteria, index);
+    return defaultDriver().getElement(criteria, index);
   }
 
   /**
@@ -431,15 +431,14 @@ public class Selenide {
    * @return empty list if element was no found
    */
   public static ElementsCollection getElements(By criteria) {
-    return $$(criteria);
+    return defaultDriver().getElements(criteria);
   }
 
   /**
    * Executes JavaScript
    */
-  @SuppressWarnings("unchecked")
   public static <T> T executeJavaScript(String jsCode, Object... arguments) {
-    return (T) ((JavascriptExecutor) getWebDriver()).executeScript(jsCode, arguments);
+    return defaultDriver().executeJavaScript(jsCode, arguments);
   }
 
   /**
@@ -452,7 +451,7 @@ public class Selenide {
    */
   @Deprecated
   public static SelenideElement selectRadio(By radioField, String value) {
-    return $(radioField).selectRadio(value);
+    return defaultDriver().$(radioField).selectRadio(value);
   }
 
   /**
@@ -461,12 +460,7 @@ public class Selenide {
    * @return null, if nothing selected
    */
   public static SelenideElement getSelectedRadio(By radioField) {
-    for (WebElement radio : $$(radioField)) {
-      if (radio.getAttribute("checked") != null) {
-        return wrap(radio);
-      }
-    }
-    return null;
+    return defaultDriver().getSelectedRadio(radioField);
   }
 
   /**
@@ -474,9 +468,7 @@ public class Selenide {
    * @param confirmReturnValue true = OK, false = CANCEL
    */
   public static void onConfirmReturn(boolean confirmReturnValue) {
-    if (doDismissModalDialogs()) {
-      executeJavaScript("window._selenide_modalDialogReturnValue = " + confirmReturnValue + ';');
-    }
+    defaultDriver().onConfirmReturn(confirmReturnValue);
   }
 
   /**
@@ -484,7 +476,7 @@ public class Selenide {
    * @return actual dialog text
    */
   public static String confirm() {
-    return confirm(null);
+    return defaultDriver().confirm();
   }
 
   /**
@@ -495,14 +487,7 @@ public class Selenide {
    * @return actual dialog text
    */
   public static String confirm(String expectedDialogText) {
-    if (!doDismissModalDialogs()) {
-      Alert alert = switchTo().alert();
-      String actualDialogText = alert.getText();
-      alert.accept();
-      checkDialogText(expectedDialogText, actualDialogText);
-      return actualDialogText;
-    }
-    return null;
+    return defaultDriver().confirm(expectedDialogText);
   }
 
   /**
@@ -510,7 +495,7 @@ public class Selenide {
    * @return actual dialog text
    */
   public static String prompt() {
-    return prompt(null, null);
+    return defaultDriver().prompt();
   }
 
   /**
@@ -519,7 +504,7 @@ public class Selenide {
    * @return actual dialog text
    */
   public static String prompt(String inputText) {
-    return prompt(null, inputText);
+    return defaultDriver().prompt(inputText);
   }
 
   /**
@@ -531,25 +516,15 @@ public class Selenide {
    * @return actual dialog text
    */
   public static String prompt(String expectedDialogText, String inputText) {
-    if (!doDismissModalDialogs()) {
-      Alert alert = switchTo().alert();
-      String actualDialogText = alert.getText();
-      if (inputText != null)
-        alert.sendKeys(inputText);
-      alert.accept();
-      checkDialogText(expectedDialogText, actualDialogText);
-      return actualDialogText;
-    }
-    return null;
+    return defaultDriver().prompt(expectedDialogText, inputText);
   }
-
 
   /**
    * Dismiss (click "No" or "Cancel") in the confirmation dialog (javascript 'alert' or 'confirm').
    * @return actual dialog text
    */
   public static String dismiss() {
-    return dismiss(null);
+    return defaultDriver().dismiss();
   }
 
   /**
@@ -560,21 +535,7 @@ public class Selenide {
    * @return actual dialog text
    */
   public static String dismiss(String expectedDialogText) {
-    if (!doDismissModalDialogs()) {
-      Alert alert = switchTo().alert();
-      String actualDialogText = alert.getText();
-      alert.dismiss();
-      checkDialogText(expectedDialogText, actualDialogText);
-      return actualDialogText;
-    }
-    return null;
-  }
-
-  private static void checkDialogText(String expectedDialogText, String actualDialogText) {
-    if (expectedDialogText != null && !expectedDialogText.equals(actualDialogText)) {
-      Screenshots.takeScreenShot(Selenide.class.getName(), Thread.currentThread().getName());
-      throw new DialogTextMismatch(actualDialogText, expectedDialogText);
-    }
+    return defaultDriver().dismiss(expectedDialogText);
   }
 
   /**
@@ -587,15 +548,14 @@ public class Selenide {
    * @return SelenideTargetLocator
    */
   public static SelenideTargetLocator switchTo() {
-    return new SelenideTargetLocator(getWebDriver().switchTo());
+    return defaultDriver().switchTo();
   }
 
   /**
-   *
    * @return WebElement, not SelenideElement! which has focus on it
    */
   public static WebElement getFocusedElement() {
-    return (WebElement) executeJavaScript("return document.activeElement");
+    return defaultDriver().getFocusedElement();
   }
 
   /**

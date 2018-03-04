@@ -1,15 +1,15 @@
 package com.codeborne.selenide;
 
+import com.codeborne.selenide.ex.DialogTextMismatch;
 import com.codeborne.selenide.ex.JavaScriptErrorsFound;
-import com.codeborne.selenide.impl.Navigator;
-import com.codeborne.selenide.impl.ScreenShotLaboratory;
-import com.codeborne.selenide.impl.SelenideFieldDecorator;
+import com.codeborne.selenide.impl.*;
 import org.openqa.selenium.JavascriptExecutor;
 
 import javax.inject.Inject;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -19,6 +19,7 @@ import static com.codeborne.selenide.Configuration.captureJavascriptErrors;
 import static com.codeborne.selenide.Configuration.dismissModalDialogs;
 import static com.codeborne.selenide.Configuration.timeout;
 import static com.codeborne.selenide.WebDriverRunner.*;
+import static com.codeborne.selenide.impl.WebElementWrapper.wrap;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -256,5 +257,138 @@ public class SelenideDriver {
 
   public String getUserAgent() {
     return executeJavaScript("return navigator.userAgent;");
+  }
+
+  public SelenideElement $(WebElement webElement) {
+    return wrap(webElement);
+  }
+
+  public SelenideElement $(String cssSelector) {
+    return getElement(By.cssSelector(cssSelector));
+  }
+
+  public SelenideElement $x(String xpathExpression) {
+    return getElement(By.xpath(xpathExpression));
+  }
+
+  public SelenideElement $(By seleniumSelector) {
+    return getElement(seleniumSelector);
+  }
+
+  public SelenideElement $(By seleniumSelector, int index) {
+    return getElement(seleniumSelector, index);
+  }
+
+  public SelenideElement $(String cssSelector, int index) {
+    return ElementFinder.wrap(null, By.cssSelector(cssSelector), index);
+  }
+
+  public ElementsCollection $$(Collection<? extends WebElement> elements) {
+    return new ElementsCollection(new WebElementsCollectionWrapper(elements));
+  }
+
+  public ElementsCollection $$(String cssSelector) {
+    return new ElementsCollection(new BySelectorCollection(By.cssSelector(cssSelector)));
+  }
+
+  public ElementsCollection $$x(String xpathExpression) {
+    return new ElementsCollection(new BySelectorCollection(By.xpath(xpathExpression)));
+  }
+
+  public ElementsCollection $$(By seleniumSelector) {
+    return new ElementsCollection(new BySelectorCollection(seleniumSelector));
+  }
+
+  public SelenideElement getElement(By criteria) {
+    return ElementFinder.wrap(null, criteria, 0);
+  }
+
+  public SelenideElement getElement(By criteria, int index) {
+    return ElementFinder.wrap(null, criteria, index);
+  }
+
+  public ElementsCollection getElements(By criteria) {
+    return $$(criteria);
+  }
+
+  public SelenideElement getSelectedRadio(By radioField) {
+    for (WebElement radio : $$(radioField)) {
+      if (radio.getAttribute("checked") != null) {
+        return wrap(radio);
+      }
+    }
+    return null;
+  }
+
+  public void onConfirmReturn(boolean confirmReturnValue) {
+    if (doDismissModalDialogs()) {
+      executeJavaScript("window._selenide_modalDialogReturnValue = " + confirmReturnValue + ';');
+    }
+  }
+
+  public String confirm() {
+    return confirm(null);
+  }
+
+  public String confirm(String expectedDialogText) {
+    if (!doDismissModalDialogs()) {
+      Alert alert = switchTo().alert();
+      String actualDialogText = alert.getText();
+      alert.accept();
+      checkDialogText(expectedDialogText, actualDialogText);
+      return actualDialogText;
+    }
+    return null;
+  }
+
+  public String prompt() {
+    return prompt(null, null);
+  }
+
+  public String prompt(String inputText) {
+    return prompt(null, inputText);
+  }
+
+  public String prompt(String expectedDialogText, String inputText) {
+    if (!doDismissModalDialogs()) {
+      Alert alert = switchTo().alert();
+      String actualDialogText = alert.getText();
+      if (inputText != null)
+        alert.sendKeys(inputText);
+      alert.accept();
+      checkDialogText(expectedDialogText, actualDialogText);
+      return actualDialogText;
+    }
+    return null;
+  }
+
+  public String dismiss() {
+    return dismiss(null);
+  }
+
+  public String dismiss(String expectedDialogText) {
+    if (!doDismissModalDialogs()) {
+      Alert alert = switchTo().alert();
+      String actualDialogText = alert.getText();
+      alert.dismiss();
+      checkDialogText(expectedDialogText, actualDialogText);
+      return actualDialogText;
+    }
+    return null;
+  }
+
+  private void checkDialogText(String expectedDialogText, String actualDialogText) {
+    if (expectedDialogText != null && !expectedDialogText.equals(actualDialogText)) {
+      Screenshots.takeScreenShot(Selenide.class.getName(), Thread.currentThread().getName());
+      throw new DialogTextMismatch(actualDialogText, expectedDialogText);
+    }
+  }
+
+  public SelenideTargetLocator switchTo() {
+    return new SelenideTargetLocator(getWebDriver().switchTo());
+  }
+
+  public WebElement getFocusedElement() {
+    return (WebElement) executeJavaScript("return document.activeElement");
   }
 }
