@@ -15,6 +15,19 @@ header-text:
 
 <div class="wrapper-content">
   <section>
+    
+    <a href="https://www.semrush.com/" target="_blank">
+      <img src="{{ BASE_PATH }}/images/semrush-logo.png" style="width: 200px;" alt="SEMrush"/>
+    </a>
+    <br/>
+    
+    <div class="text-right">
+      <a href="https://www.semrush.com/" target="_blank">SEMrush</a>  
+       is a leading digital marketing toolkit for SEO, PPC and content marketing professionals worldwide. 
+       It is included in the TOP-3 market marketing services of the world.
+    </div>
+    
+    <hr class="divider"/>
 
     <a href="http://propellerads.com" target="_blank">
       <img src="{{ BASE_PATH }}/images/propeller-logo.png" style="width: 200px;" alt="Propeller Ads"/>
