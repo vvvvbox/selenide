@@ -18,9 +18,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.codeborne.selenide.Configuration.captureJavascriptErrors;
-import static com.codeborne.selenide.Configuration.dismissModalDialogs;
-import static com.codeborne.selenide.Configuration.timeout;
+import static com.codeborne.selenide.Configuration.*;
 import static com.codeborne.selenide.WebDriverRunner.*;
 import static com.codeborne.selenide.impl.WebElementWrapper.wrap;
 import static java.util.Arrays.asList;
@@ -32,6 +30,7 @@ public class SelenideDriver {
 
   @Inject
   private ScreenShotLaboratory screenshots;
+
   @Inject
   private Navigator navigator;
 
@@ -393,5 +392,9 @@ public class SelenideDriver {
 
   public WebElement getFocusedElement() {
     return (WebElement) executeJavaScript("return document.activeElement");
+  }
+
+  public boolean atBottom() {
+    return executeJavaScript("return window.pageYOffset + window.innerHeight >= document.body.scrollHeight");
   }
 }

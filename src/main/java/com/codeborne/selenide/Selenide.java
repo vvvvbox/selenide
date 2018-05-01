@@ -2,25 +2,17 @@ package com.codeborne.selenide;
 
 import com.codeborne.selenide.ex.DialogTextMismatch;
 import com.codeborne.selenide.ex.JavaScriptErrorsFound;
-import com.codeborne.selenide.impl.BySelectorCollection;
-import com.codeborne.selenide.impl.ElementFinder;
-import com.codeborne.selenide.impl.WebElementsCollectionWrapper;
 import com.codeborne.selenide.inject.Module;
-import org.openqa.selenium.*;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
-import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.support.ui.FluentWait;
 
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
-
-import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
-import static com.codeborne.selenide.WebDriverRunner.url;
-import static com.codeborne.selenide.impl.WebElementWrapper.wrap;
-import static java.util.Collections.emptyList;
 
 /**
  * The main starting point of Selenide.
@@ -190,10 +182,6 @@ public class Selenide {
     return defaultDriver().screenshot(fileName);
   }
 
-  // ********************************************
-  // TODO Migrate methods below to SelenideDriver
-  // ********************************************
-
   /**
    * Wrap standard Selenium WebElement into SelenideElement
    * to use additional methods like shouldHave(), selectOption() etc.
@@ -244,7 +232,7 @@ public class Selenide {
 
   /**
    * @deprecated please use $(parent).$(String) which is the same
-   * (method will not be removed until 4.x or later)
+   * (method will not be removed until 5.x or later)
    * @see  #$(String)
    *
    * Locates the first element matching given CSS selector
@@ -708,6 +696,6 @@ public class Selenide {
    * Useful if you need to scroll down by x pixels unknown number of times.
    */
   public static boolean atBottom() {
-    return executeJavaScript("return window.pageYOffset + window.innerHeight >= document.body.scrollHeight");
+    return defaultDriver().atBottom();
   }
 }
