@@ -119,6 +119,10 @@ public class WebDriverRunner {
     return webdriverContainer.getWebDriver();
   }
 
+  public static SelenideDriver getSelenideDriver() {
+    return webdriverContainer.getSelenideDriver();
+  }
+
   /**
    * Sets Selenium Proxy instance
    *
@@ -162,56 +166,56 @@ public class WebDriverRunner {
    * Is Selenide configured to use Firefox browser
    */
   public static boolean isFirefox() {
-    return FIREFOX.equalsIgnoreCase(browser);
+    return new Browser(browser).isFirefox();
   }
 
   /**
    * Is Selenide configured to use legacy Firefox driver
    */
   public static boolean isLegacyFirefox() {
-    return LEGACY_FIREFOX.equalsIgnoreCase(browser);
+    return new Browser(browser).isLegacyFirefox();
   }
 
   /**
    * Is Selenide configured to use Chrome browser
    */
   public static boolean isChrome() {
-    return CHROME.equalsIgnoreCase(browser);
+    return new Browser(browser).isChrome();
   }
 
   /**
    * Is Selenide configured to use Internet Explorer browser
    */
   public static boolean isIE() {
-    return INTERNET_EXPLORER.equalsIgnoreCase(browser) || IE.equalsIgnoreCase(browser);
+    return new Browser(browser).isIE();
   }
 
   /**
    * Is Selenide configured to use Microsoft EDGE browser
    */
   public static boolean isEdge() {
-    return EDGE.equalsIgnoreCase(browser);
+    return new Browser(browser).isEdge();
   }
 
   /**
    * Is Selenide configured to user Safari browser
    */
   public static boolean isSafari() {
-    return SAFARI.equalsIgnoreCase(browser);
+    return new Browser(browser).isSafari();
   }
 
   /**
    * Is Selenide configured to use headless browser (HtmlUnit or PhantomJS)
    */
   public static boolean isHeadless() {
-    return isHtmlUnit() || isPhantomjs();
+    return new Browser(browser).isHeadless();
   }
 
   /**
    * Does this browser support "alert" and "confirm" dialogs.
    */
   public static boolean supportsModalDialogs() {
-    return !isHeadless() && !isSafari() || isHtmlUnit();
+    return new Browser(browser).supportsModalDialogs();
   }
 
   /**
@@ -225,7 +229,7 @@ public class WebDriverRunner {
    * Is Selenide configured to use HtmlUnit browser
    */
   public static boolean isHtmlUnit() {
-    return browser != null && browser.startsWith(HTMLUNIT);
+    return new Browser(browser).isHtmlUnit();
   }
 
   /**

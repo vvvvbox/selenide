@@ -2,7 +2,7 @@ package com.codeborne.selenide;
 
 import com.codeborne.selenide.ex.DialogTextMismatch;
 import com.codeborne.selenide.ex.JavaScriptErrorsFound;
-import com.codeborne.selenide.inject.Module;
+import com.codeborne.selenide.impl.LegacyConf;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -21,14 +21,6 @@ import java.util.logging.Level;
  * {@link #$(String)} for searching web elements.
  */
 public class Selenide {
-  private static final ThreadLocal<SelenideDriver> defaultDrivers = ThreadLocal.withInitial(() ->
-      new Module().instance(SelenideDriver.class)
-  );
-
-  private static SelenideDriver defaultDriver() {
-    return defaultDrivers.get();
-  }
-
   /**
    * The main starting point in your tests.
    * Open a browser window with given URL.
@@ -42,7 +34,7 @@ public class Selenide {
    *   In this case, it's prepended by baseUrl
    */
   public static void open(String relativeOrAbsoluteUrl) {
-    defaultDriver().open(relativeOrAbsoluteUrl);
+    WebDriverRunner.getWebDriver().open(relativeOrAbsoluteUrl);
   }
 
   /**

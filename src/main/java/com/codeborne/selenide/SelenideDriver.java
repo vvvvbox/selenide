@@ -2,15 +2,34 @@ package com.codeborne.selenide;
 
 import com.codeborne.selenide.ex.DialogTextMismatch;
 import com.codeborne.selenide.ex.JavaScriptErrorsFound;
-import com.codeborne.selenide.impl.*;
-import org.openqa.selenium.*;
+import com.codeborne.selenide.impl.BySelectorCollection;
+import com.codeborne.selenide.impl.Cleanup;
+import com.codeborne.selenide.impl.ElementFinder;
+import com.codeborne.selenide.impl.Navigator;
+import com.codeborne.selenide.impl.ScreenShotLaboratory;
+import com.codeborne.selenide.impl.SelenideFieldDecorator;
+import com.codeborne.selenide.impl.WebDriverContainer;
+import com.codeborne.selenide.impl.WebDriverThreadLocalContainer;
+import com.codeborne.selenide.impl.WebElementsCollectionWrapper;
+import com.codeborne.selenide.inject.Module;
+import com.codeborne.selenide.proxy.SelenideProxyServer;
+import org.openqa.selenium.Alert;
+import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.SearchContext;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.logging.LogEntry;
+import org.openqa.selenium.remote.UnreachableBrowserException;
+import org.openqa.selenium.support.events.WebDriverEventListener;
 import org.openqa.selenium.support.ui.FluentWait;
 
 import javax.inject.Inject;
 import java.lang.reflect.Constructor;
 import java.net.URL;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -18,21 +37,54 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.codeborne.selenide.Configuration.*;
-import static com.codeborne.selenide.WebDriverRunner.*;
+import static com.codeborne.selenide.WebDriverRunner.supportsJavascript;
+import static com.codeborne.selenide.impl.Describe.describe;
 import static com.codeborne.selenide.impl.WebElementWrapper.wrap;
+import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.logging.Level.FINE;
 
 public class SelenideDriver {
   private static final Logger log = Logger.getLogger(SelenideDriver.class.getName());
 
-  @Inject
-  private ScreenShotLaboratory screenshots;
+  private final Conf conf;
+  private final Module module;
+  private final ScreenShotLaboratory screenshots;
+  private final Navigator navigator;
+  private final List<WebDriverEventListener> listeners = new ArrayList<>(); // TODO use me
+  private WebDriver webDriver;
+  private SelenideProxyServer proxy;
 
-  @Inject
-  private Navigator navigator;
+  public SelenideDriver(Conf conf, Module module) {
+    this.conf = conf;
+    this.module = module;
+    this.screenshots = module.instance(ScreenShotLaboratory.class);
+    this.navigator = module.instance(Navigator.class);
+  }
+
+  public void setWebDriver(WebDriver webDriver) {
+    this.webDriver = webDriver;
+  }
+
+  public void setProxy(SelenideProxyServer proxy) {
+    this.proxy = proxy;
+  }
+
+  public WebDriver getWebDriver() {
+    if (!hasWebDriverStarted()) {
+      throw new IllegalStateException("WebDriver not initialized. Open a page before calling any other methods.");
+    }
+    return webDriver;
+  }
+
+  private boolean hasWebDriverStarted() {
+    return webDriver != null;
+  }
+
+  public SelenideProxyServer getProxy() {
+    return proxy;
+  }
 
   public void open(String relativeOrAbsoluteUrl) {
     open(relativeOrAbsoluteUrl, "", "", "");
@@ -90,8 +142,29 @@ public class SelenideDriver {
     return pageObject;
   }
 
+  public void deleteAllCookies() {
+    if (hasWebDriverStarted()) {
+      getWebDriver().manage().deleteAllCookies();
+    }
+  }
+
   public void close() {
-    closeWebDriver();
+    if (webDriver != null) {
+      try {
+        log.info("Trying to close the browser " + describe(webDriver) + " ...");
+        webDriver.quit();
+      } catch (UnreachableBrowserException e) {
+        // It happens for Firefox. It's ok: browser is already closed.
+        log.log(FINE, "Browser is unreachable", e);
+      } catch (WebDriverException cannotCloseBrowser) {
+        log.severe("Cannot close browser normally: " + Cleanup.of.webdriverExceptionMessage(cannotCloseBrowser));
+      }
+    }
+
+    if (proxy != null) {
+      log.info("Trying to shutdown " + proxy + " ...");
+      proxy.shutdown();
+    }
   }
 
   public void updateHash(String hash) {
@@ -115,8 +188,16 @@ public class SelenideDriver {
     }
   }
 
+  public Browser browser() {
+    return new Browser(conf.browser());
+  }
+
+  private boolean supportsModalDialogs() {
+    return browser().supportsModalDialogs();
+  }
+
   private boolean doDismissModalDialogs() {
-    return !supportsModalDialogs() || dismissModalDialogs;
+    return !supportsModalDialogs() || conf.dismissModalDialogs();
   }
 
   @SuppressWarnings("unchecked")
@@ -126,6 +207,10 @@ public class SelenideDriver {
 
   public void refresh() {
     navigator.open(url());
+  }
+
+  public String url() {
+    return getWebDriver().getCurrentUrl();
   }
 
   public void back() {
@@ -146,8 +231,8 @@ public class SelenideDriver {
 
   public FluentWait<WebDriver> Wait() {
     return new FluentWait<>(getWebDriver())
-        .withTimeout(timeout, MILLISECONDS)
-        .pollingEvery(Configuration.pollingInterval, MILLISECONDS);
+        .withTimeout(Duration.of(conf.timeout(), MILLIS))
+        .pollingEvery(Duration.of(conf.pollingInterval(), MILLIS));
   }
 
   public Actions actions() {
@@ -155,13 +240,13 @@ public class SelenideDriver {
   }
 
   public List<String> getJavascriptErrors() {
-    if (!captureJavascriptErrors) {
+    if (!conf.captureJavascriptErrors()) {
       return emptyList();
     }
     else if (!hasWebDriverStarted()) {
       return emptyList();
     }
-    else if (!supportsJavascript()) {
+    else if (!(webDriver instanceof JavascriptExecutor)) {
       return emptyList();
     }
     try {
@@ -229,7 +314,7 @@ public class SelenideDriver {
     return listToString(getLogEntries(logType, logLevel));
   }
 
-  private static List<LogEntry> getLogEntries(String logType, Level logLevel) {
+  private List<LogEntry> getLogEntries(String logType, Level logLevel) {
     try {
       return getWebDriver().manage().logs().get(logType).filter(logLevel);
     }

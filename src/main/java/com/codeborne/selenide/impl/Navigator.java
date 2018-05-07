@@ -1,5 +1,6 @@
 package com.codeborne.selenide.impl;
 
+import com.codeborne.selenide.SelenideDriver;
 import com.codeborne.selenide.logevents.SelenideLog;
 import com.codeborne.selenide.logevents.SelenideLogger;
 import org.openqa.selenium.JavascriptExecutor;
@@ -11,44 +12,59 @@ import java.util.logging.Logger;
 
 import static com.codeborne.selenide.Configuration.baseUrl;
 import static com.codeborne.selenide.Configuration.captureJavascriptErrors;
-import static com.codeborne.selenide.WebDriverRunner.getAndCheckWebDriver;
+import static com.codeborne.selenide.WebDriverRunner.getSelenideDriver;
 import static com.codeborne.selenide.WebDriverRunner.getWebDriver;
-import static com.codeborne.selenide.WebDriverRunner.isIE;
 import static com.codeborne.selenide.logevents.LogEvent.EventStatus.PASS;
 
 public class Navigator {
   private static final Logger log = Logger.getLogger(Navigator.class.getName());
 
   public void open(String relativeOrAbsoluteUrl) {
-    open(relativeOrAbsoluteUrl, "", "", "");
+    open(getSelenideDriver(), relativeOrAbsoluteUrl);
+  }
+
+  public void open(SelenideDriver driver, String relativeOrAbsoluteUrl) {
+    open(driver, relativeOrAbsoluteUrl, "", "", "");
   }
 
   public void open(URL url) {
-    open(url, "", "", "");
+    open(getSelenideDriver(), url);
+  }
+
+  public void open(SelenideDriver driver, URL url) {
+    open(driver, url, "", "", "");
   }
 
   public void open(String relativeOrAbsoluteUrl, String domain, String login, String password) {
+    open(getSelenideDriver(), relativeOrAbsoluteUrl, domain, login, password);
+  }
+
+  public void open(SelenideDriver driver, String relativeOrAbsoluteUrl, String domain, String login, String password) {
     if (isAbsoluteUrl(relativeOrAbsoluteUrl)) {
-      navigateToAbsoluteUrl(relativeOrAbsoluteUrl, domain, login, password);
+      navigateToAbsoluteUrl(driver, relativeOrAbsoluteUrl, domain, login, password);
     } else {
-      navigateToAbsoluteUrl(absoluteUrl(relativeOrAbsoluteUrl), domain, login, password);
+      navigateToAbsoluteUrl(driver, absoluteUrl(relativeOrAbsoluteUrl), domain, login, password);
     }
   }
 
   public void open(URL url, String domain, String login, String password) {
-    navigateToAbsoluteUrl(url.toExternalForm());
+    open(getSelenideDriver(), url, domain, login, password);
+  }
+
+  public void open(SelenideDriver driver, URL url, String domain, String login, String password) {
+    navigateToAbsoluteUrl(driver, url.toExternalForm());
   }
 
   protected String absoluteUrl(String relativeUrl) {
     return baseUrl + relativeUrl;
   }
 
-  protected void navigateToAbsoluteUrl(String url) {
-    navigateToAbsoluteUrl(url, "", "", "");
+  protected void navigateToAbsoluteUrl(SelenideDriver driver, String url) {
+    navigateToAbsoluteUrl(driver, url, "", "", "");
   }
 
-  protected void navigateToAbsoluteUrl(String url, String domain, String login, String password) {
-    if (isIE() && !isLocalFile(url)) {
+  protected void navigateToAbsoluteUrl(SelenideDriver driver, String url, String domain, String login, String password) {
+    if (driver.browser().isIE() && !isLocalFile(url)) {
       url = makeUniqueUrlToAvoidIECaching(url, System.nanoTime());
     }
     else {
@@ -65,7 +81,7 @@ public class Navigator {
 
     SelenideLog log = SelenideLogger.beginStep("open", url);
     try {
-      WebDriver webdriver = getAndCheckWebDriver();
+      WebDriver webdriver = driver.getAndCheckWebDriver();
       webdriver.navigate().to(url);
       collectJavascriptErrors((JavascriptExecutor) webdriver);
       SelenideLogger.commitStep(log, PASS);

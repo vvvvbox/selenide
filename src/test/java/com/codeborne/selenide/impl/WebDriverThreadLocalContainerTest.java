@@ -1,6 +1,7 @@
 package com.codeborne.selenide.impl;
 
 import com.codeborne.selenide.Configuration;
+import com.codeborne.selenide.SelenideDriver;
 import com.codeborne.selenide.WebDriverRunner;
 import com.codeborne.selenide.webdriver.WebDriverFactory;
 import org.junit.After;
@@ -16,7 +17,6 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.remote.UnreachableBrowserException;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
@@ -87,7 +87,7 @@ public class WebDriverThreadLocalContainerTest {
   @Test
   public void checksIfBrowserIsStillAlive() {
     Configuration.reopenBrowserOnFail = true;
-    WebDriver webdriver = mock(WebDriver.class);
+    SelenideDriver webdriver = mock(SelenideDriver.class);
     container.THREAD_WEB_DRIVER.put(currentThread().getId(), webdriver);
 
     assertSame(webdriver, container.getAndCheckWebDriver());
@@ -97,7 +97,7 @@ public class WebDriverThreadLocalContainerTest {
   @Test
   public void doesNotReopenBrowserIfItFailed() {
     Configuration.reopenBrowserOnFail = false;
-    WebDriver webdriver = mock(WebDriver.class);
+    SelenideDriver webdriver = mock(SelenideDriver.class);
     container.THREAD_WEB_DRIVER.put(currentThread().getId(), webdriver);
 
     assertSame(webdriver, container.getAndCheckWebDriver());
@@ -137,7 +137,7 @@ public class WebDriverThreadLocalContainerTest {
   }
 
   @Test
-  public void closeWebDriverLoggingWhenProxyIsAdded() throws IOException {
+  public void closeWebDriverLoggingWhenProxyIsAdded() {
     Configuration.holdBrowserOpen = false;
     Configuration.fileDownload = PROXY;
 
