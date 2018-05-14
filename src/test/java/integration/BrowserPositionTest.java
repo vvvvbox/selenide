@@ -18,6 +18,7 @@ public class BrowserPositionTest extends IntegrationTest {
   @After
   public void closeBrowser() {
     close();
+    Configuration.headless = false;
   }
 
   @Test

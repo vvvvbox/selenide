@@ -19,6 +19,11 @@ public class LazyEvaluationTest extends IntegrationTest {
     closeWebDriver();
   }
 
+  @AfterClass
+  public static void resetBrowser() {
+    Configuration.browser = System.getProperty("selenide.browser");
+  }
+
   SelenideElement h1 = $("h1");
   SelenideElement button = $("#double-clickable-button");
 
