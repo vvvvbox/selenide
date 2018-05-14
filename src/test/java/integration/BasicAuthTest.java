@@ -32,7 +32,7 @@ public class BasicAuthTest extends IntegrationTest {
         "",
         "user",
         "passwd");
-    assertThat(source(), containsString("\"authenticated\": true,"));
+    assertThat(source(), containsString("\"authenticated\":true"));
   }
 
   @Test
@@ -44,7 +44,7 @@ public class BasicAuthTest extends IntegrationTest {
         "user",
         "passwd");
     $(By.tagName("pre")).waitUntil(visible, 10000);
-    assertThat(source(), containsString("\"authenticated\": true,"));
+    assertThat(source(), containsString("\"authenticated\":true"));
   }
 
   @Test
