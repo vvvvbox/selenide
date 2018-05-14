@@ -8,25 +8,26 @@ import com.codeborne.selenide.impl.ElementFinder;
 import com.codeborne.selenide.impl.Navigator;
 import com.codeborne.selenide.impl.ScreenShotLaboratory;
 import com.codeborne.selenide.impl.SelenideFieldDecorator;
-import com.codeborne.selenide.impl.WebDriverContainer;
-import com.codeborne.selenide.impl.WebDriverThreadLocalContainer;
 import com.codeborne.selenide.impl.WebElementsCollectionWrapper;
 import com.codeborne.selenide.inject.Module;
 import com.codeborne.selenide.proxy.SelenideProxyServer;
+import com.codeborne.selenide.webdriver.WebDriverFactory;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.SearchContext;
+import org.openqa.selenium.NoSuchSessionException;
+import org.openqa.selenium.NoSuchWindowException;
+import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.logging.LogEntry;
 import org.openqa.selenium.remote.UnreachableBrowserException;
+import org.openqa.selenium.support.events.EventFiringWebDriver;
 import org.openqa.selenium.support.events.WebDriverEventListener;
 import org.openqa.selenium.support.ui.FluentWait;
 
-import javax.inject.Inject;
 import java.lang.reflect.Constructor;
 import java.net.URL;
 import java.time.Duration;
@@ -37,9 +38,11 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.codeborne.selenide.WebDriverRunner.supportsJavascript;
+import static com.codeborne.selenide.Configuration.FileDownloadMode.PROXY;
+import static com.codeborne.selenide.Configuration.reopenBrowserOnFail;
 import static com.codeborne.selenide.impl.Describe.describe;
 import static com.codeborne.selenide.impl.WebElementWrapper.wrap;
+import static java.lang.Thread.currentThread;
 import static java.time.temporal.ChronoUnit.MILLIS;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -52,15 +55,18 @@ public class SelenideDriver {
   private final Module module;
   private final ScreenShotLaboratory screenshots;
   private final Navigator navigator;
-  private final List<WebDriverEventListener> listeners = new ArrayList<>(); // TODO use me
+  private final WebDriverFactory factory;
+  private final List<WebDriverEventListener> listeners = new ArrayList<>();
   private WebDriver webDriver;
   private SelenideProxyServer proxy;
+  private Proxy userProvidedProxy;
 
   public SelenideDriver(Conf conf, Module module) {
     this.conf = conf;
     this.module = module;
     this.screenshots = module.instance(ScreenShotLaboratory.class);
     this.navigator = module.instance(Navigator.class);
+    this.factory = module.instance(WebDriverFactory.class);
   }
 
   public void setWebDriver(WebDriver webDriver) {
@@ -71,6 +77,39 @@ public class SelenideDriver {
     this.proxy = proxy;
   }
 
+  public void setUserProvidedProxy(Proxy proxy) {
+    this.userProvidedProxy = proxy;
+  }
+
+  public WebDriver getAndCheckWebDriver() {
+    if (hasWebDriverStarted()) {
+      if (!reopenBrowserOnFail || isBrowserStillOpen(webDriver)) {
+        return webDriver;
+      } else {
+        log.info("Webdriver has been closed meanwhile. Let's re-create it.");
+        close();
+      }
+    }
+    createDriver();
+    return webDriver;
+  }
+
+  protected boolean isBrowserStillOpen(WebDriver webDriver) {
+    try {
+      webDriver.getTitle();
+      return true;
+    } catch (UnreachableBrowserException e) {
+      log.log(FINE, "Browser is unreachable", e);
+      return false;
+    } catch (NoSuchWindowException e) {
+      log.log(FINE, "Browser window is not found", e);
+      return false;
+    } catch (NoSuchSessionException e) {
+      log.log(FINE, "Browser session is not found", e);
+      return false;
+    }
+  }
+
   public WebDriver getWebDriver() {
     if (!hasWebDriverStarted()) {
       throw new IllegalStateException("WebDriver not initialized. Open a page before calling any other methods.");
@@ -78,7 +117,7 @@ public class SelenideDriver {
     return webDriver;
   }
 
-  private boolean hasWebDriverStarted() {
+  public boolean hasWebDriverStarted() {
     return webDriver != null;
   }
 
@@ -86,8 +125,39 @@ public class SelenideDriver {
     return proxy;
   }
 
+  protected void createDriver() {
+    Proxy seleniumProxy = userProvidedProxy;
+    if (conf.fileDownload() == PROXY) {
+      SelenideProxyServer selenideProxyServer = new SelenideProxyServer(userProvidedProxy);
+      selenideProxyServer.start();
+      setProxy(selenideProxyServer);
+      seleniumProxy = selenideProxyServer.createSeleniumProxy();
+    }
+
+    WebDriver webdriver = factory.createWebDriver(seleniumProxy);
+    addListeners(webdriver);
+
+    log.info("Create webdriver in current thread " + currentThread().getId() + ": " +
+      describe(webdriver) + " -> " + webdriver);
+
+    setWebDriver(webdriver);
+  }
+
+  protected WebDriver addListeners(WebDriver webdriver) {
+    if (listeners.isEmpty()) {
+      return webdriver;
+    }
+
+    EventFiringWebDriver wrapper = new EventFiringWebDriver(webdriver);
+    for (WebDriverEventListener listener : listeners) {
+      log.info("Add listener to webdriver: " + listener);
+      wrapper.register(listener);
+    }
+    return wrapper;
+  }
+
   public void open(String relativeOrAbsoluteUrl) {
-    open(relativeOrAbsoluteUrl, "", "", "");
+    navigator.open(this, relativeOrAbsoluteUrl);
   }
 
   public void open(URL absoluteUrl) {
@@ -95,7 +165,7 @@ public class SelenideDriver {
   }
 
   public void open(String relativeOrAbsoluteUrl, String domain, String login, String password) {
-    navigator.open(relativeOrAbsoluteUrl, domain, login, password);
+    navigator.open(this, relativeOrAbsoluteUrl, domain, login, password);
     mockModalDialogs();
   }
 
@@ -159,11 +229,13 @@ public class SelenideDriver {
       } catch (WebDriverException cannotCloseBrowser) {
         log.severe("Cannot close browser normally: " + Cleanup.of.webdriverExceptionMessage(cannotCloseBrowser));
       }
+      webDriver = null;
     }
 
     if (proxy != null) {
       log.info("Trying to shutdown " + proxy + " ...");
       proxy.shutdown();
+      proxy = null;
     }
   }
 

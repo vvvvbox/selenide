@@ -28,4 +28,9 @@ public class LegacyConf implements Conf {
   public boolean captureJavascriptErrors() {
     return Configuration.captureJavascriptErrors;
   }
+
+  @Override
+  public Configuration.FileDownloadMode fileDownload() {
+    return Configuration.fileDownload;
+  }
 }

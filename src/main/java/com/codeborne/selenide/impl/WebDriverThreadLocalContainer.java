@@ -1,19 +1,11 @@
 package com.codeborne.selenide.impl;
 
-import com.codeborne.selenide.Configuration;
 import com.codeborne.selenide.DefaultModule;
-import com.codeborne.selenide.Selenide;
 import com.codeborne.selenide.SelenideDriver;
 import com.codeborne.selenide.proxy.SelenideProxyServer;
-import com.codeborne.selenide.webdriver.WebDriverFactory;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.NoSuchSessionException;
-import org.openqa.selenium.NoSuchWindowException;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebDriverException;
-import org.openqa.selenium.remote.UnreachableBrowserException;
-import org.openqa.selenium.support.events.EventFiringWebDriver;
 import org.openqa.selenium.support.events.WebDriverEventListener;
 
 import java.util.ArrayList;
@@ -25,16 +17,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
-import static com.codeborne.selenide.Configuration.FileDownloadMode.PROXY;
-import static com.codeborne.selenide.Configuration.*;
-import static com.codeborne.selenide.impl.Describe.describe;
+import static com.codeborne.selenide.Configuration.closeBrowserTimeoutMs;
+import static com.codeborne.selenide.Configuration.holdBrowserOpen;
 import static java.lang.Thread.currentThread;
 import static java.util.logging.Level.FINE;
 
 public class WebDriverThreadLocalContainer implements WebDriverContainer {
   private static final Logger log = Logger.getLogger(WebDriverThreadLocalContainer.class.getName());
-
-  protected WebDriverFactory factory = new WebDriverFactory();
 
   protected List<WebDriverEventListener> listeners = new ArrayList<>();
   protected Collection<Thread> ALL_WEB_DRIVERS_THREADS = new ConcurrentLinkedQueue<>();
@@ -75,54 +64,38 @@ public class WebDriverThreadLocalContainer implements WebDriverContainer {
     proxy = webProxy;
   }
 
-  protected boolean isBrowserStillOpen(WebDriver webDriver) {
-    try {
-      webDriver.getTitle();
-      return true;
-    } catch (UnreachableBrowserException e) {
-      log.log(FINE, "Browser is unreachable", e);
-      return false;
-    } catch (NoSuchWindowException e) {
-      log.log(FINE, "Browser window is not found", e);
-      return false;
-    } catch (NoSuchSessionException e) {
-      log.log(FINE, "Browser session is not found", e);
-      return false;
-    }
-  }
-
   /**
    * @return true iff webdriver is started in current thread
    */
   @Override
   public boolean hasWebDriverStarted() {
-    return THREAD_WEB_DRIVER.containsKey(currentThread().getId());
+    SelenideDriver driver = THREAD_WEB_DRIVER.get(currentThread().getId());
+    return driver != null && driver.hasWebDriverStarted();
   }
 
   @Override
   public WebDriver getWebDriver() {
+    return getSelenideDriver().getWebDriver();
+  }
+
+  @Override
+  public SelenideDriver getSelenideDriver() {
     SelenideDriver webDriver = THREAD_WEB_DRIVER.get(currentThread().getId());
     if (webDriver != null) {
-      return webDriver.getWebDriver();
+      return webDriver;
     }
 
     log.info("No webdriver is bound to current thread: " + currentThread().getId() + " - let's create new webdriver");
-    return setDriver(createDriver()).getWebDriver();
+    return setDriver(createDriver());
   }
 
   @Override
   public WebDriver getAndCheckWebDriver() {
-    SelenideDriver webDriver = THREAD_WEB_DRIVER.get(currentThread().getId());
-    if (webDriver != null) {
-      if (!reopenBrowserOnFail || isBrowserStillOpen(webDriver.getWebDriver())) {
-        return webDriver.getWebDriver();
-      }
-      else {
-        log.info("Webdriver has been closed meanwhile. Let's re-create it.");
-        closeWebDriver();
-      }
+    SelenideDriver selenideDriver = THREAD_WEB_DRIVER.get(currentThread().getId());
+    if (selenideDriver == null) {
+      selenideDriver = setDriver(createDriver());
     }
-    return setDriver(createDriver()).getWebDriver();
+    return selenideDriver.getAndCheckWebDriver();
   }
 
   @Override
@@ -205,36 +178,12 @@ public class WebDriverThreadLocalContainer implements WebDriverContainer {
   }
 
   protected SelenideDriver createDriver() {
-    Proxy userProvidedProxy = proxy;
     SelenideDriver selenideDriver = new SelenideDriver(new LegacyConf(), new DefaultModule());
-
-    if (Configuration.fileDownload == PROXY) {
-      SelenideProxyServer selenideProxyServer = new SelenideProxyServer(proxy);
-      selenideProxyServer.start();
-      selenideDriver.setProxy(selenideProxyServer);
-      userProvidedProxy = selenideProxyServer.createSeleniumProxy();
+    if (proxy != null) {
+      selenideDriver.setUserProvidedProxy(proxy);
     }
-
-    WebDriver webdriver = factory.createWebDriver(userProvidedProxy);
-    addListeners(webdriver);
-
-    log.info("Create webdriver in current thread " + currentThread().getId() + ": " +
-            describe(webdriver) + " -> " + webdriver);
-
-    selenideDriver.setWebDriver(webdriver);
-
     markForAutoClose();
     return selenideDriver;
-  }
-
-  protected void addListeners(WebDriver webdriver) {
-    if (!listeners.isEmpty()) {
-      EventFiringWebDriver wrapper = new EventFiringWebDriver(webdriver);
-      for (WebDriverEventListener listener : listeners) {
-        log.info("Add listener to webdriver: " + listener);
-        wrapper.register(listener);
-      }
-    }
   }
 
   protected void markForAutoClose() {

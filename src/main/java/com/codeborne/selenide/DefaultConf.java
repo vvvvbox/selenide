@@ -1,11 +1,14 @@
 package com.codeborne.selenide;
 
+import com.codeborne.selenide.Configuration.FileDownloadMode;
+
 public class DefaultConf implements Conf {
   protected String browser;
   protected long timeout;
   protected long pollingInterval;
   protected boolean dismissModalDialogs;
   protected boolean captureJavascriptErrors;
+  protected FileDownloadMode fileDownload;
 
   @Override
   public String browser() {
@@ -30,5 +33,10 @@ public class DefaultConf implements Conf {
   @Override
   public boolean captureJavascriptErrors() {
     return captureJavascriptErrors;
+  }
+
+  @Override
+  public FileDownloadMode fileDownload() {
+    return fileDownload;
   }
 }
