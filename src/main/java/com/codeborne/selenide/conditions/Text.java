@@ -9,6 +9,7 @@ import java.util.List;
 
 public class Text extends Condition {
   protected final String text;
+  private String lastActualValue;
   public Text(final String text) {
     super("text");
     this.text = text;
@@ -19,7 +20,13 @@ public class Text extends Condition {
     String elementText = "select".equalsIgnoreCase(element.getTagName()) ?
         getSelectedOptionsTexts(element) :
         element.getText();
+    lastActualValue = elementText;
     return Html.text.contains(elementText, this.text.toLowerCase());
+  }
+
+  @Override
+  public String actualValue(WebElement element) {
+    return lastActualValue;
   }
 
   private String getSelectedOptionsTexts(WebElement element) {

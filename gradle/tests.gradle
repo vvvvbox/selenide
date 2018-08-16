@@ -37,7 +37,7 @@ task htmlunit(type: Test) {
 
 task phantomjs(type: Test) {
   systemProperties['selenide.browser'] = 'phantomjs'
-  include 'integration/**/*'
+  include 'integration/CollectionReloadingTest*'
   exclude 'com/codeborne/selenide/**/*'
 }
 
