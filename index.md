@@ -23,7 +23,7 @@ tagline:
 <div class="short wiki">
   <div class="wrapper-color-content">
     <h3>What is Selenide?</h3>
-    <h4>Selenide is a framework for test automation powered by <a href="http://docs.seleniumhq.org/projects/webdriver/" target="_blank">Selenium WebDriver</a> that brings the following advantages:</h4>
+    <h4>Selenide is a framework for test automation powered by <a href="https://docs.seleniumhq.org/projects/webdriver/" target="_blank">Selenium WebDriver</a> that brings the following advantages:</h4>
     <div class="highlights">
       <a href="/documentation.html">Concise fluent API for tests</a>
       <span>Ajax support for stable tests</span>
@@ -98,7 +98,7 @@ tagline:
 <a name="thanks"></a>
 <div class="short thanks">
   <h4>Many thanks to:</h4>
-  <img src="http://store.softline.ru/uploads/resizer/allsoft_2231598/2231598_Scale_120x120.png"/>
+  <img src="https://store.softline.ru/uploads/resizer/allsoft_2231598/2231598_Scale_120x120.png"/>
   <img src="{{BASE_PATH}}/images/yourkit.png" target="_blank" alt="YourKit" style="width: 150px;"/>
   <img src="https://www.browserstack.com/images/mail/browserstack-logo-footer.png"/>
 </div>
