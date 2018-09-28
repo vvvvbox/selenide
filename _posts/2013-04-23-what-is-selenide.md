@@ -15,7 +15,7 @@ The goal of Selenide is to resolve these problems.
 ![right]({{ BASE_PATH }}/images/selenide-logo-100x100.png)
 
 ### What is Selenide
-[Selenide](http://selenide.org) is a wrapper for Selenium WebDriver that allows you easier and faster writing of UI Tests.
+[Selenide](https://selenide.org) is a wrapper for Selenium WebDriver that allows you easier and faster writing of UI Tests.
 With Selenide you can concentrate on business logic instead of solving all these endless browser/ajax/timeouts problems.
 
 This is an example of UI Test. As you see, the amount of code is minimal. Just type `open` - and browser comes.
@@ -150,7 +150,7 @@ amount of code that you need to copy-pase into your project.
 
 We asked ourself: why should UI Testing be so tedious?
 We decided to extract our repeating code into a separate open-source library.
-That's how [Selenide](http://selenide.org) was born.
+That's how [Selenide](https://selenide.org) was born.
 
 
 ### Does somebody use Selenide?

@@ -312,7 +312,7 @@ header-text:
     </a>
     
     <div>The only software company in Estonia that uses TDD and other XP practices in everyday work.
-    Creators of open-source libraries <a href="http://selenide.org">Selenide</a> and
+    Creators of open-source libraries <a href="https://selenide.org">Selenide</a> and
     <a href="http://github.com/codeborne/mobileid" target="_blank">MobileID</a>.</div>
     
     <br/>

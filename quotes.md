@@ -36,12 +36,12 @@ header-text:
         We have TONS of automation and Selenide helps us to keep the pace at all stages - from design to maintenance."
     </p>
     Alexandr Sedyh<br/>
-    Quality control department, <a href="http://infotech.group/" target="_blank">Infotech Group</a>
+    Quality control department, <a href="https://infotech.group/" target="_blank">Infotech Group</a>
 </blockquote>
 
 <hr class="divider"/>
 
-<blockquote><p>"<a href="http://ru.selenide.org/quotes.html#comment-1949629758">It's cool! It's a pity that I haven't tried Selenide. This is what is needed in any project!</a>"</p><a href="https://disqus.com/by/ilyaslabiy/">Ilya Slabiy</a></blockquote>
+<blockquote><p>"<a href="https://ru.selenide.org/quotes.html#comment-1949629758">It's cool! It's a pity that I haven't tried Selenide. This is what is needed in any project!</a>"</p><a href="https://disqus.com/by/ilyaslabiy/">Ilya Slabiy</a></blockquote>
 
 <hr class="divider"/>
 

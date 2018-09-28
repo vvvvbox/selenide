@@ -12,7 +12,7 @@ header-text: >
 ---
 {% include JB/setup %}
 
-<a class="video right" href="http://vimeo.com/107647158">
+<a class="video right" href="https://vimeo.com/107647158">
   How to write UI test in 10 minutes
 </a>
 
@@ -98,4 +98,4 @@ etc.
 If you have any examples of Selenide usage, feel free to share them with us!
 
 ### Video tutorial
-<iframe src="//player.vimeo.com/video/107647158" width="800" height="450" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe> <p><a href="http://vimeo.com/107647158">How to start writing UI tests in 10 minutes</a> from <a href="http://vimeo.com/user20427140">Selenide</a> on <a href="https://vimeo.com">Vimeo</a>.</p> <p>Selenide tutorial</p>
+<iframe src="//player.vimeo.com/video/107647158" width="800" height="450" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe> <p><a href="https://vimeo.com/107647158">How to start writing UI tests in 10 minutes</a> from <a href="http://vimeo.com/user20427140">Selenide</a> on <a href="https://vimeo.com">Vimeo</a>.</p> <p>Selenide tutorial</p>
